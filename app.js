@@ -8,6 +8,7 @@ const SORTS = {
   price: { label: 'Цена', hint: 'сначала дешевле' },
   name: { label: 'Название', hint: 'от А до Я' },
   mileage: { label: 'Пробег', hint: 'сначала меньше' },
+  year: { label: 'Год', hint: 'сначала новее' },
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -37,12 +38,13 @@ function save() {
 }
 
 function loadPrefs() {
-  const defaults = { sort: 'price', maxPrice: null };
+  const defaults = { sort: 'price', maxPrice: null, minYear: null };
   try {
     const p = JSON.parse(localStorage.getItem(PREFS_KEY)) || {};
     return {
       sort: p.sort in SORTS ? p.sort : defaults.sort,
       maxPrice: toInt(p.maxPrice),
+      minYear: toInt(p.minYear),
     };
   } catch {
     return defaults;
@@ -55,15 +57,23 @@ function savePrefs() {
   } catch {}
 }
 
+function extractYear(name) {
+  const m = typeof name === 'string' && name.match(/\b(19\d{2}|20\d{2})\b/);
+  return m ? Number(m[1]) : null;
+}
+
 function normalize(raw) {
   if (!raw || typeof raw.name !== 'string' || !raw.name.trim()) return null;
+  const name = raw.name.trim();
+  const yearFromField = toInt(raw.year);
   return {
     id: String(raw.id || uid()),
-    name: raw.name.trim(),
+    name,
     price: toInt(raw.price),
     mileage: toInt(raw.mileage),
     hand: toInt(raw.hand),
     engine: typeof raw.engine === 'string' ? raw.engine.trim() : '',
+    year: yearFromField !== null ? yearFromField : extractYear(name),
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || new Date().toISOString(),
   };
@@ -109,6 +119,7 @@ function cardElement(car) {
   li.dataset.id = car.id;
 
   const specs = [];
+  if (car.year !== null) specs.push(`<span class="spec"><b>${car.year}</b></span>`);
   if (car.mileage !== null) specs.push(`<span class="spec"><b>${fmtNum(car.mileage)}</b> км</span>`);
   if (car.hand !== null) specs.push(`<span class="spec">Рука <b>${car.hand}</b></span>`);
   if (car.engine) specs.push(`<span class="spec"><b>${escapeHtml(car.engine)}</b></span>`);
@@ -134,15 +145,21 @@ const comparators = {
   price: byNumber('price'),
   name: (a, b) => a.name.localeCompare(b.name, 'ru'),
   mileage: byNumber('mileage'),
+  year: (a, b) => {
+    if (a.year === null || b.year === null) return (a.year === null) - (b.year === null);
+    return b.year - a.year || a.name.localeCompare(b.name, 'ru');
+  },
 };
 
 function render() {
   const q = query.trim().toLocaleLowerCase('ru');
   const max = prefs.maxPrice;
 
+  const minYear = prefs.minYear;
   const visible = cars
     .filter((c) => !q || c.name.toLocaleLowerCase('ru').includes(q))
     .filter((c) => max === null || (c.price !== null && c.price <= max))
+    .filter((c) => minYear === null || (c.year !== null && c.year >= minYear))
     .sort(comparators[prefs.sort]);
 
   $('#list').replaceChildren(...visible.map(cardElement));
@@ -162,6 +179,8 @@ function render() {
   $('#sortValue').textContent = SORTS[prefs.sort].label;
   $('#priceValue').textContent = max === null ? 'Любая цена' : `До ${fmtPrice(max)}`;
   $('#priceBtn').classList.toggle('active', max !== null);
+  $('#yearValue').textContent = minYear === null ? 'Все годы' : `от ${minYear}`;
+  $('#yearBtn').classList.toggle('active', minYear !== null);
 }
 
 /* ---------- Список и поиск ---------- */
@@ -221,6 +240,7 @@ function openCar(car) {
   carForm.mileage.value = car && car.mileage !== null ? fmtNum(car.mileage) : '';
   carForm.hand.value = car && car.hand !== null ? car.hand : '';
   carForm.engine.value = car ? car.engine : '';
+  carForm.year.value = car && car.year !== null ? car.year : '';
   openSheet($('#carSheet'));
   if (!car) setTimeout(() => carForm.name.focus(), 50);
 }
@@ -233,7 +253,7 @@ carForm.addEventListener('submit', (e) => {
     carForm.name.focus();
     return;
   }
-  const bad = [carForm.price, carForm.mileage, carForm.hand].find(isBad);
+  const bad = [carForm.price, carForm.mileage, carForm.hand, carForm.year].find(isBad);
   if (bad) {
     toast('Введите целое число, например 85 000');
     bad.focus();
@@ -246,6 +266,7 @@ carForm.addEventListener('submit', (e) => {
     mileage: toInt(carForm.mileage.value),
     hand: toInt(carForm.hand.value),
     engine: carForm.engine.value.trim(),
+    year: toInt(carForm.year.value),
     updatedAt: new Date().toISOString(),
   };
 
@@ -329,6 +350,33 @@ $('#presets').addEventListener('click', (e) => {
 
 $('#priceReset').addEventListener('click', () => applyMaxPrice(null));
 
+/* ---------- Фильтр по году ---------- */
+
+function applyMinYear(value) {
+  prefs.minYear = value;
+  savePrefs();
+  render();
+  closeSheet($('#yearSheet'));
+}
+
+$('#yearBtn').addEventListener('click', () => {
+  const years = [...new Set(cars.map((c) => c.year).filter((y) => y !== null))].sort((a, b) => b - a);
+  const menu = $('#yearMenu');
+  menu.innerHTML = years.map((y) =>
+    `<button type="button" class="menu-item" data-year="${y}"><span>от ${y}<small>${cars.filter((c) => c.year !== null && c.year >= y).length} авто</small></span><span class="check">✓</span></button>`,
+  ).join('');
+  menu.querySelectorAll('[data-year]').forEach((b) => b.classList.toggle('selected', Number(b.dataset.year) === prefs.minYear));
+  openSheet($('#yearSheet'));
+});
+
+$('#yearMenu').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-year]');
+  if (!btn) return;
+  applyMinYear(Number(btn.dataset.year));
+});
+
+$('#yearReset').addEventListener('click', () => applyMinYear(null));
+
 /* ---------- Выгрузка в файл ---------- */
 
 const CSV_COLUMNS = [
@@ -337,6 +385,7 @@ const CSV_COLUMNS = [
   { key: 'mileage', title: 'Пробег', aliases: ['пробег', 'mileage', 'км', 'km', 'קילומטר', 'ק"מ'] },
   { key: 'hand', title: 'Рука', aliases: ['рука', 'hand', 'владел', 'יד'] },
   { key: 'engine', title: 'Двигатель', aliases: ['двигатель', 'engine', 'мотор', 'מנוע'] },
+  { key: 'year', title: 'Год', aliases: ['год', 'year', 'שנה', 'שנת'] },
 ];
 
 function stamp() {

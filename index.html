@@ -38,6 +38,9 @@
       <button class="pill" id="priceBtn">
         <span id="priceValue"></span>
       </button>
+      <button class="pill" id="yearBtn">
+        <span id="yearValue"></span>
+      </button>
     </div>
   </header>
 
@@ -87,6 +90,10 @@
           <span>Двигатель</span>
           <input name="engine" type="text" autocomplete="off" placeholder="1.6 бензин">
         </label>
+        <label class="field">
+          <span>Год</span>
+          <input name="year" type="text" inputmode="numeric" autocomplete="off" placeholder="2021">
+        </label>
       </div>
       <button type="button" class="btn btn-danger" id="deleteBtn" hidden>Удалить авто</button>
     </form>
@@ -121,6 +128,19 @@
       <div class="presets" id="presets"></div>
       <button type="button" class="btn btn-secondary" id="priceReset">Показать все цены</button>
     </form>
+  </div>
+
+  <!-- Фильтр по году -->
+  <div class="sheet-backdrop" id="yearSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <button type="button" class="link-btn" data-close>Отмена</button>
+        <h3>Год выпуска</h3>
+        <span class="link-btn placeholder">Готово</span>
+      </div>
+      <div class="menu" id="yearMenu"></div>
+      <button type="button" class="btn btn-secondary" id="yearReset">Показать все годы</button>
+    </div>
   </div>
 
   <!-- Файлы -->
