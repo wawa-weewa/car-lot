@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Автоплощадка</title>
+  <meta name="description" content="Учёт автомобилей на площадке">
+  <meta name="theme-color" content="#f3f1f6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1d1f30" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Площадка">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-row">
+      <p class="kicker" id="kicker">Площадка</p>
+      <button class="icon-btn" id="settingsBtn" aria-label="Настройки">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+      </button>
+    </div>
+    <h1>Автомобили</h1>
+    <p class="hero-sub" id="heroSub"></p>
+    <label class="search">
+      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M10.5 4a6.5 6.5 0 0 1 5.2 10.4l4.4 4.4-1.4 1.4-4.4-4.4A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+      <input type="search" id="search" placeholder="Поиск по названию" autocomplete="off" enterkeyhint="search">
+    </label>
+    <div class="pills">
+      <button class="pill" id="sortBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 4 3 8h3v12h2V8h3zm10 16 4-4h-3V4h-2v12h-3z"/></svg>
+        <span id="sortValue"></span>
+      </button>
+      <button class="pill" id="priceBtn">
+        <span id="priceValue"></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <ul class="list" id="list"></ul>
+    <div class="empty" id="empty" hidden>
+      <div class="empty-icon">🚗</div>
+      <h2>Площадка пока пуста</h2>
+      <p>Добавьте первый автомобиль, чтобы начать учёт.</p>
+      <button class="btn btn-primary" id="emptyAdd">Добавить авто</button>
+    </div>
+    <p class="no-results" id="noResults" hidden>Ничего не найдено</p>
+  </main>
+
+  <button class="fab" id="addBtn" aria-label="Добавить авто">
+    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+  </button>
+
+  <!-- Добавление / редактирование -->
+  <div class="sheet-backdrop" id="carSheet" hidden>
+    <form class="sheet" id="carForm" novalidate>
+      <div class="sheet-head">
+        <button type="button" class="link-btn" data-close>Отмена</button>
+        <h3 id="carTitle">Новое авто</h3>
+        <button type="submit" class="link-btn strong">Готово</button>
+      </div>
+      <div class="group">
+        <label class="field">
+          <span>Название</span>
+          <input name="name" type="text" required autocomplete="off" autocapitalize="sentences" placeholder="Toyota Corolla 2019">
+        </label>
+      </div>
+      <div class="group">
+        <label class="field">
+          <span>Цена, ₪</span>
+          <input name="price" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+        </label>
+        <label class="field">
+          <span>Пробег, км</span>
+          <input name="mileage" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
+        </label>
+        <label class="field">
+          <span>Рука</span>
+          <input name="hand" type="text" inputmode="numeric" autocomplete="off" placeholder="1">
+        </label>
+        <label class="field">
+          <span>Двигатель</span>
+          <input name="engine" type="text" autocomplete="off" placeholder="1.6 бензин">
+        </label>
+      </div>
+      <button type="button" class="btn btn-danger" id="deleteBtn" hidden>Удалить авто</button>
+    </form>
+  </div>
+
+  <!-- Сортировка -->
+  <div class="sheet-backdrop" id="sortSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <span class="link-btn placeholder">Отмена</span>
+        <h3>Сортировка</h3>
+        <button type="button" class="link-btn strong" data-close>Готово</button>
+      </div>
+      <div class="menu" id="sortMenu"></div>
+    </div>
+  </div>
+
+  <!-- Фильтр по цене -->
+  <div class="sheet-backdrop" id="priceSheet" hidden>
+    <form class="sheet" id="priceForm" novalidate>
+      <div class="sheet-head">
+        <button type="button" class="link-btn" data-close>Отмена</button>
+        <h3>Цена до</h3>
+        <button type="submit" class="link-btn strong">Готово</button>
+      </div>
+      <div class="group">
+        <label class="field">
+          <span>Не дороже, ₪</span>
+          <input name="max" type="text" inputmode="numeric" autocomplete="off" placeholder="Любая">
+        </label>
+      </div>
+      <div class="presets" id="presets"></div>
+      <button type="button" class="btn btn-secondary" id="priceReset">Показать все цены</button>
+    </form>
+  </div>
+
+  <!-- Файлы -->
+  <div class="sheet-backdrop" id="settingsSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <span class="link-btn placeholder">Отмена</span>
+        <h3>Данные</h3>
+        <button type="button" class="link-btn strong" data-close>Готово</button>
+      </div>
+      <p class="section-title">Выгрузить в файл</p>
+      <div class="menu">
+        <button type="button" class="menu-item" id="exportCsvBtn"><span>Таблица<small>CSV: откроется в Excel, Numbers, Google Таблицах</small></span></button>
+        <button type="button" class="menu-item" id="exportJsonBtn"><span>Резервная копия<small>JSON: для восстановления в этом приложении</small></span></button>
+      </div>
+      <p class="section-title">Загрузить из файла</p>
+      <div class="menu">
+        <button type="button" class="menu-item" id="importBtn"><span>Выбрать файл<small>CSV-таблица или резервная копия JSON</small></span></button>
+      </div>
+      <p class="hint">В таблице нужны колонки: Название, Цена, Пробег, Рука, Двигатель. Обязательна только колонка «Название». Данные хранятся только на этом устройстве, поэтому время от времени сохраняйте копию, например в iCloud Drive.</p>
+      <input type="file" id="importFile" accept=".csv,.json,.txt,text/csv,application/json" hidden>
+    </div>
+  </div>
+
+  <!-- Загрузка: добавить или заменить -->
+  <div class="sheet-backdrop" id="importSheet" hidden>
+    <div class="sheet">
+      <div class="sheet-head">
+        <button type="button" class="link-btn" data-close>Отмена</button>
+        <h3>Загрузка</h3>
+        <span class="link-btn placeholder">Готово</span>
+      </div>
+      <p class="import-summary" id="importSummary"></p>
+      <div class="menu">
+        <button type="button" class="menu-item" data-mode="add"><span>Добавить к текущим<small id="importAddHint"></small></span></button>
+        <button type="button" class="menu-item danger" data-mode="replace"><span>Заменить все<small id="importReplaceHint"></small></span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
