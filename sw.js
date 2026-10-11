@@ -1,6 +1,6 @@
 // При изменении файлов приложения увеличьте версию, чтобы телефон загрузил обновление
 const PREFIX = 'carlot-';
-const CACHE = PREFIX + 'v3';
+const CACHE = PREFIX + 'v4';
 const ASSETS = [
   './',
   'index.html',

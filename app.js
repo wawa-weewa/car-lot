@@ -491,6 +491,7 @@ function carsFromCsv(text) {
       mileage: csvInt(get('mileage')),
       hand: csvInt(get('hand')),
       engine: get('engine'),
+      year: csvInt(get('year')),
     });
   }).filter(Boolean);
 }
